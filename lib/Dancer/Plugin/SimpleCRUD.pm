@@ -379,6 +379,17 @@ If C<raw_column> consists of anything other than letters, numbers, and underscor
 it is passed in raw, so you could put something like "NOW()"  or "datetime('now')"
 in there and it should work as expected.
 
+=item C<custom_order>
+
+A hashref to specify how to sort a column in the list view of an entity.
+The keys of the hash are column names, where the value of each entry is a column
+from the table that is used to sort the results when the user sorts on the column
+given as key.
+
+If sort column consists of anything other than letters, numbers, and underscores,
+it is passed in raw, so you could put something like "SUBSTR(column, 2)" in there
+and it should work as expected.
+
 =item C<auth>
 
 You can require that users be authenticated to view/edit records using the C<auth>
@@ -918,6 +929,7 @@ SEARCHFORM
             my $lkey   = $dbh->quote_identifier($col);
             my $rkey   = $dbh->quote_identifier($foreign_key->{key_column});
 
+            # FIXME: Contrary to below comment, $table_name is not quoted here.
             # Identifiers quoted above, and $table_name quoted further up, so
             # all safe to interpolate
             my $what_to_join = $ftable;
@@ -1020,11 +1032,16 @@ SEARCHFORM
                 my $fk = $args->{foreign_keys}{$order_by_column};
                 $order_by_column = $fk->{label_column};
                 $order_by_table = $fk->{table};
-        }
+		}
 
-        $query .= " ORDER BY "
-            . $dbh->quote_identifier($order_by_table) . "." . $dbh->quote_identifier($order_by_column)
-            . " $order_by_direction ";
+		$order_by_column = $args->{custom_order}{$order_by_column} if exists $args->{custom_order}{$order_by_column};
+
+        $query
+            .= " ORDER BY "
+			. ($order_by_column =~ /^\w+$/
+			   ? $dbh->quote_identifier($order_by_table) . "." . $dbh->quote_identifier($order_by_column)
+			   : $order_by_column)
+			. " $order_by_direction ";
     }
 
     if ($args->{paginate} && $args->{paginate} =~ /^\d+$/) {
