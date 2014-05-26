@@ -125,6 +125,10 @@ easy to set up and use.
                 },
             },
         },
+        custom_order => {
+            str_ip_address => hex_ip_address, # sort on another column
+            name => LTRIM(name),              # sort using SQL function
+        },
         auth => {
             view => {
                 require_login => 1,
